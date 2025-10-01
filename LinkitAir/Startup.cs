@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Data;
 using Core.Interfaces;
@@ -51,7 +52,7 @@ namespace LinkitAir
 
             // services.AddScoped<RequestActionFilter>();
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc();
 
             services.AddEntityFrameworkSqlServer();
 
@@ -109,15 +110,15 @@ namespace LinkitAir
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info {
+                c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo {
                     Version = "v1",
                     Title = "LinkitAir API",
                     Description = "Web API for LinkitAir, airline services",
-                    Contact = new Contact
+                    Contact = new Microsoft.OpenApi.Models.OpenApiContact
                     {
                         Name = "Robert Gliguroski",
                         Email = "robert.gliguroski@gmail.com",
-                        Url = "https://twitter.com/gliguroskir"
+                        Url = new Uri("https://twitter.com/gliguroskir")
                     },
                 });
                 var filePath = Path.Combine(AppContext.BaseDirectory, "api.xml");
@@ -126,7 +127,7 @@ namespace LinkitAir
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
