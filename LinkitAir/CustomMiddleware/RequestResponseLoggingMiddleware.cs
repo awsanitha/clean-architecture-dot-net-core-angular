@@ -1,5 +1,4 @@
 ﻿using Microsoft.AspNetCore.Http;
-using Microsoft.AspNetCore.Http.Internal;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Collections.Generic;
@@ -57,7 +56,7 @@ namespace LinkitAir.CustomMiddleware
         private async Task<string> FormatRequest(HttpRequest request)
         {
             var body = request.Body;
-            request.EnableRewind();
+            request.EnableBuffering();
 
             var buffer = new byte[Convert.ToInt32(request.ContentLength)];
             await request.Body.ReadAsync(buffer, 0, buffer.Length);
