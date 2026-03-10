@@ -31,8 +31,7 @@ namespace LinkitAir.ViewModelHelpers
                  ).Map(
                    dest => dest.ArrivalTime, src => src.ArrivalTime.ToString("dddd, dd MMMM yyyy HH:mm")
                  );
-                IAdapter adapter = new Adapter(config);
-                flightInstanceViewModels.Add(adapter.Adapt<FlightViewModel>(flightInstance));
+                flightInstanceViewModels.Add(flightInstance.Adapt<FlightViewModel>(config));
             }
             
             return flightInstanceViewModels;
@@ -55,8 +54,7 @@ namespace LinkitAir.ViewModelHelpers
                   ).Map(
                     dest => dest.FlightCode, src => src.Code
                   );
-            IAdapter adapter = new Adapter(config);
-            var flightInstanceViewModel = adapter.Adapt<FlightViewModel>(flightInstance);
+            var flightInstanceViewModel = flightInstance.Adapt<FlightViewModel>(config);
             return flightInstanceViewModel;
         }
     }

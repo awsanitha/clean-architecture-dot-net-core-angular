@@ -9,7 +9,7 @@ using Infrastructure.Data;
 using Core.Interfaces;
 using Core.Services;
 using Core.Entities;
-using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.OpenApi.Models;
 using System.IO;
 using System;
 using LinkitAir.Helpers;
@@ -18,6 +18,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
+using Microsoft.Extensions.Hosting;
 
 namespace LinkitAir
 {
@@ -51,7 +52,7 @@ namespace LinkitAir
 
             // services.AddScoped<RequestActionFilter>();
 
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddControllers();
 
             services.AddEntityFrameworkSqlServer();
 
@@ -109,15 +110,15 @@ namespace LinkitAir
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info {
+                c.SwaggerDoc("v1", new OpenApiInfo {
                     Version = "v1",
                     Title = "LinkitAir API",
                     Description = "Web API for LinkitAir, airline services",
-                    Contact = new Contact
+                    Contact = new OpenApiContact
                     {
                         Name = "Robert Gliguroski",
                         Email = "robert.gliguroski@gmail.com",
-                        Url = "https://twitter.com/gliguroskir"
+                        Url = new Uri("https://twitter.com/gliguroskir")
                     },
                 });
                 var filePath = Path.Combine(AppContext.BaseDirectory, "api.xml");
@@ -126,7 +127,7 @@ namespace LinkitAir
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -163,13 +164,14 @@ namespace LinkitAir
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "LinkitAir API V1");
             });
 
-            app.UseAuthentication();
+            app.UseRouting();
 
-            app.UseMvc(routes =>
+            app.UseAuthentication();
+            app.UseAuthorization();
+
+            app.UseEndpoints(endpoints =>
             {
-                routes.MapRoute(
-                    name: "default",
-                    template: "{controller}/{action=Index}/{id?}");
+                endpoints.MapControllers();
             });
 
 
