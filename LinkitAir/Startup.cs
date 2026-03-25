@@ -1,15 +1,15 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SpaServices.AngularCli;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Infrastructure.Data;
 using Core.Interfaces;
 using Core.Services;
 using Core.Entities;
-using Swashbuckle.AspNetCore.Swagger;
+using Microsoft.OpenApi.Models;
 using System.IO;
 using System;
 using LinkitAir.Helpers;
@@ -30,15 +30,8 @@ namespace LinkitAir
 
         public IConfiguration Configuration { get; }
 
-        // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
-            /**
-             * @TODO: Think about adding a third-party IoC Container for registering dependencies
-             * in order to utilize the support for registry classes to avoid referencing the Infrastructure 
-             * project from the UI layer(this feature is not offered by the default IoC container provided by ASP.NET Core
-             * */
-
             services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
             services.AddScoped(typeof(IAsyncRepository<>), typeof(EfRepository<>));
             services.AddScoped<IRequestLogRepository, RequestLogRepository>();
@@ -49,19 +42,12 @@ namespace LinkitAir
 
             services.AddCors();
 
-            // services.AddScoped<RequestActionFilter>();
-
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_1);
+            services.AddMvc(options => options.EnableEndpointRouting = false);
 
             services.AddEntityFrameworkSqlServer();
 
-            /**
-             * @TODO: This also creates a dependency, makes the UI layer dependent on Infrastructure.
-             * Think about a way to handle this and possibly remove this dependency
-             * */
             services.AddDbContext<AppDbContext>(options =>
-               options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection")
-               )
+               options.UseSqlServer(Configuration.GetConnectionString("DefaultConnection"))
            );
 
             services.AddIdentity<ApplicationUser, IdentityRole>(
@@ -78,8 +64,7 @@ namespace LinkitAir
             services.AddAuthentication(opts =>
             {
                 opts.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-                opts.DefaultAuthenticateScheme =
-                JwtBearerDefaults.AuthenticationScheme;
+                opts.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
                 opts.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
             }).AddJwtBearer(cfg =>
             {
@@ -87,12 +72,10 @@ namespace LinkitAir
                 cfg.SaveToken = true;
                 cfg.TokenValidationParameters = new TokenValidationParameters()
                 {
-                    // standard configuration
                     ValidIssuer = Configuration["Auth:Jwt:Issuer"],
                     ValidAudience = Configuration["Auth:Jwt:Audience"],
                     IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(Configuration["Auth:Jwt:Key"])),
                     ClockSkew = TimeSpan.Zero,
-                    // security switches
                     RequireExpirationTime = true,
                     ValidateIssuer = true,
                     ValidateIssuerSigningKey = true,
@@ -100,8 +83,6 @@ namespace LinkitAir
                 };
             });
 
-
-            // In production, the Angular files will be served from this directory
             services.AddSpaStaticFiles(configuration =>
             {
                 configuration.RootPath = "ClientApp/dist";
@@ -109,15 +90,16 @@ namespace LinkitAir
 
             services.AddSwaggerGen(c =>
             {
-                c.SwaggerDoc("v1", new Info {
+                c.SwaggerDoc("v1", new OpenApiInfo
+                {
                     Version = "v1",
                     Title = "LinkitAir API",
                     Description = "Web API for LinkitAir, airline services",
-                    Contact = new Contact
+                    Contact = new OpenApiContact
                     {
                         Name = "Robert Gliguroski",
                         Email = "robert.gliguroski@gmail.com",
-                        Url = "https://twitter.com/gliguroskir"
+                        Url = new Uri("https://twitter.com/gliguroskir")
                     },
                 });
                 var filePath = Path.Combine(AppContext.BaseDirectory, "api.xml");
@@ -125,8 +107,7 @@ namespace LinkitAir
             });
         }
 
-        // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
-        public void Configure(IApplicationBuilder app, IHostingEnvironment env)
+        public void Configure(IApplicationBuilder app, IWebHostEnvironment env)
         {
             if (env.IsDevelopment())
             {
@@ -139,9 +120,7 @@ namespace LinkitAir
             }
 
             app.UseCors(builder =>
-     builder.WithOrigins("http://localhost"));
-
-            //   app.UseRequestResponseLogging
+                builder.WithOrigins("http://localhost"));
 
             app.Use(async (context, next) =>
             {
@@ -152,8 +131,8 @@ namespace LinkitAir
                 IRequestLogService service = (IRequestLogService)context.RequestServices.GetService(typeof(IRequestLogService));
                 var helper = new HttpRequestResponseHelper(service);
                 await helper.saveRequestResponseDetails(context, sw);
-            }); 
-            
+            });
+
             app.UseStaticFiles();
             app.UseSpaStaticFiles();
 
@@ -172,31 +151,25 @@ namespace LinkitAir
                     template: "{controller}/{action=Index}/{id?}");
             });
 
-
             using (var serviceScope = app.ApplicationServices.GetRequiredService<IServiceScopeFactory>().CreateScope())
             {
-                var dbContext =  serviceScope.ServiceProvider.GetService<AppDbContext>();
-
+                var dbContext = serviceScope.ServiceProvider.GetService<AppDbContext>();
                 var roleManager = serviceScope.ServiceProvider.GetService<RoleManager<IdentityRole>>();
                 var userManager = serviceScope.ServiceProvider.GetService<UserManager<ApplicationUser>>();
-                
-               //  dbContext.Database.Migrate();
-               //  DbSeeder.Seed(dbContext, roleManager, userManager);
+
+                // dbContext.Database.Migrate();
+                // DbSeeder.Seed(dbContext, roleManager, userManager);
             }
 
             app.UseSpa(spa =>
             {
-                // To learn more about options for serving an Angular SPA from ASP.NET Core,
-                // see https://go.microsoft.com/fwlink/?linkid=864501
-
                 spa.Options.SourcePath = "ClientApp";
 
                 if (env.IsDevelopment())
                 {
-                    //spa.UseAngularCliServer(npmScript: "start");
                     spa.UseProxyToSpaDevelopmentServer("http://localhost:4200");
                 }
-            });            
+            });
         }
     }
 }
